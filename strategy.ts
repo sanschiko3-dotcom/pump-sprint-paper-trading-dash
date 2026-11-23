@@ -6,11 +6,16 @@
 // - Chasing the spike loses: after a coin first hits 1.5x its create price, 62% of them dip
 //   >=8% below the trigger within 100 slots (median low 0.81x), so a tight stop is hit
 //   almost at once. A 243-combo sweep of the chase-the-spike version capped at -0.22 SOL.
-// - The entry that works is the dip AFTER a proven run-up: for coins that ran >=1.5x
-//   and then pulled back 10-35% from their trailing 300-slot high (real SOL >= 5), the
-//   max forward move in 300 slots is a median +20% (p75 +49%), with 50% reaching >=+20%.
-//   Buy the pullback at once while buyers are stepping back in, take the bounce, leave
-//   fast. (Waiting for a +5% bounce confirmation was tried and rejected: it cost
+// - The entry that works is the dip AFTER a proven run-up, with strong buy flow:
+//   coins that ran >= 2x and then pulled back 15-35% from their trailing 300-slot
+//   high (real SOL >= 15), with >= 5 buys in the last 10 trades and >= +1 SOL net
+//   buying over them, reach a median +20% max forward move in 300 slots. The flow
+//   filter is decisive: without it the same entry is ~breakeven on the full window
+//   (+0.27); with >= +1 SOL net flow it is +0.72. Shallower dips (10%) and weaker
+//   flow (net < +0.5 SOL) both lose money on the full window, and requiring >= +2 SOL
+//   net flow is too strict (it only catches the top of moves, -0.33). Buy the
+//   pullback at once while buyers are stepping back in, take the bounce, leave fast.
+//   (Waiting for a +5% bounce confirmation was tried and rejected: it cost
 //   0.06-0.14 SOL vs entering at once, because the bounce is brief.)
 // - Plain dip-buying (no run-up filter) is weak (median max bounce +6%): the run-up
 //   filter is what separates a dip from a dead coin.
@@ -19,7 +24,7 @@
 //   stop is widened and the hold cap lifted ("ride" mode).
 //
 // Entries: small (stakeSol, capped by the 1%-of-real-reserve rule), one per coin, only on
-// coins with a proven run-up, a pullback in range, and buy flow resuming.
+// coins with a proven run-up, a pullback in range, and strong buy flow resuming.
 // Exits (whole position, first trigger wins): hard stop-loss, trailing stop from the best
 // close value (armed once up trailArm), hard take-profit, or a short max-hold. Guardrail
 // probes keep the run above 20 coins / 200 fills when the bot's own flow lags the pace.
@@ -94,21 +99,21 @@ export interface Params {
 
 export const DEFAULT_PARAMS: Params = {
   highWindow: 300,
-  runupReq: 1.5,
-  dipMin: 0.1,
+  runupReq: 2.0,
+  dipMin: 0.15,
   dipMax: 0.35,
   minFloor: 1.2,
   flowTrades: 10,
-  minFlowBuys: 3,
+  minFlowBuys: 5,
   lastMustBeBuy: true,
-  minNetFlowSol: 0,
-  minRqSol: 5,
+  minNetFlowSol: 1.0,
+  minRqSol: 15,
   maxRqSol: 80,
   stakeSol: 0.7,
   minBuySol: 0.01,
   buySlipBps: 1500,
-  stopLoss: 0.08,
-  trail: 0.12,
+  stopLoss: 0.12,
+  trail: 0.2,
   trailArm: 0.08,
   hardTp: 0.25,
   maxHold: 600,
@@ -331,10 +336,10 @@ export function createStrategy(p: Params = DEFAULT_PARAMS): Bot {
         if (curve === undefined || curve.complete) continue;
         if (pendingByMint.has(mint) || probes.has(mint) || held.has(mint)) continue;
         const t = tapes.get(mint)!;
-        if (slotsLeft <= 0 || mainLeft <= 0) continue;
-        if (t.entries >= p.maxEntries || now - t.lastExit < p.cooldown) continue;
         const price = Number(curve.virtual_quote_reserves) / Number(curve.virtual_token_reserves);
         const rqSol = Number(curve.real_quote_reserves) / LAMPORTS;
+        if (slotsLeft <= 0 || mainLeft <= 0) continue;
+        if (t.entries >= p.maxEntries || now - t.lastExit < p.cooldown) continue;
         if (!entrySignal(t, now, rqSol, price)) continue;
         const capSol = Math.floor(Number(state.maxBuyLamports(mint)) * 0.97) / LAMPORTS;
         let amount = Math.min(capSol, p.stakeSol, p.maxExposureSol - exposure);
