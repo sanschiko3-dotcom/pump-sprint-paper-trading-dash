@@ -70,9 +70,21 @@ mints): 1,222 coins created, 35 completed, 128,058 events in 3 parts.
 ## Caveats
 
 - The dev window is one 24h sample; the final window is 6h of fresh data. The
-  score above is a dev-window backtest, not a promise. The stress test
-  (`grade-local --stress`) is the check for how much of it depends on this
-  window's own coins.
+  score above is a dev-window backtest, not a promise.
+- **Robustness is the weak point — read this before submitting.** On the
+  official `--stress` run only 7 of 20 copies finished before the 50-minute
+  timeout, and all 7 were negative (−1.09, −0.51, −0.10, −0.22, −0.31, −1.03,
+  −0.02 SOL; mean −0.47). A local block proxy (fresh strategy instance per run)
+  is less bleak but still noisy: four 6h slices by coin-creation time give
+  −0.29 / +0.40 / +0.40 / +0.20 (mean +0.17, 3/4 positive), and eight random
+  1/4-mint resamples of the full 24h give a mean of +0.17 with 4/8 positive.
+  Eight small exit tweaks (TP 0.15/0.20, SL 0.08, trail 0.15, flow 0.5, stake
+  0.5, runup 1.6) moved the block means by at most ±0.03 — no variant is
+  clearly more robust, so the shipped config stays the full-window best
+  (TP 0.25 / SL 0.12). Expected final-window PnL is roughly +0.17 ± 0.3 SOL
+  on the local proxy, i.e. a coin flip with a positive tilt, not the +0.55
+  the dev grade suggests; the dev edge is concentrated in a few coins (top 3
+  make 25% of the gains; without them the dev grade is −0.09).
 - The final window has fewer coins (~300 at the dev sample rate, ~25–35 trips
   expected); the probe mechanism exists to keep the distinct-coin count above
   the 20-coin bar.
