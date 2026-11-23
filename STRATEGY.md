@@ -79,9 +79,10 @@ mints): 1,222 coins created, 35 completed, 128,058 events in 3 parts.
   −0.29 / +0.40 / +0.40 / +0.20 (mean +0.17, 3/4 positive), and eight random
   1/4-mint resamples of the full 24h give a mean of +0.17 with 4/8 positive.
   Eight small exit tweaks (TP 0.15/0.20, SL 0.08, trail 0.15, flow 0.5, stake
-  0.5, runup 1.6) moved the block means by at most ±0.03 — no variant is
-  clearly more robust, so the shipped config stays the full-window best
-  (TP 0.25 / SL 0.12). Expected final-window PnL is roughly +0.17 ± 0.3 SOL
+  0.5, runup 1.6, TP 0.15 + flow 0.5) improved no measure by more than +0.06 and
+  no variant improved both measures at once — the best combined (TP 0.20:
+  slices +0.19, resamples +0.17) is within noise of the shipped config — so
+  the shipped config stays the full-window best (TP 0.25 / SL 0.12). Expected final-window PnL is roughly +0.17 ± 0.3 SOL
   on the local proxy, i.e. a coin flip with a positive tilt, not the +0.55
   the dev grade suggests; the dev edge is concentrated in a few coins (top 3
   make 25% of the gains; without them the dev grade is −0.09).
